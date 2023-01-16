@@ -75,22 +75,23 @@ class OTTORecallTrainDataset(OTTOBaseDataset):
     def sample_data(self, ):
         while True:
             # sample one positive data
-            nums = [len(self.train_eids[itype]) for itype in range(3)]
-            total_num = np.sum(nums)
-            sample_idx = np.random.choice(total_num)
-            if sample_idx < nums[0]:
-                sample_type = 0
-                eidx = self.train_eids[sample_type][sample_idx]
-            elif sample_idx < (nums[0] + nums[1]):
-                sample_type = 1
-                eidx = self.train_eids[sample_type][sample_idx - nums[0]]
-            else:
-                sample_type = 2
-                eidx = self.train_eids[sample_type][sample_idx - nums[0] - nums[1]]
-                pass
+            # nums = [len(self.train_eids[itype]) for itype in range(3)]
+            # total_num = np.sum(nums)
+            # sample_idx = np.random.choice(total_num)
 
-            # sample_type = self.event_type
-            # eidx = np.random.choice(self.train_eids[sample_type])
+            # if sample_idx < nums[0]:
+            #     sample_type = 0
+            #     eidx = self.train_eids[sample_type][sample_idx]
+            # elif sample_idx < (nums[0] + nums[1]):
+            #     sample_type = 1
+            #     eidx = self.train_eids[sample_type][sample_idx - nums[0]]
+            # else:
+            #     sample_type = 2
+            #     eidx = self.train_eids[sample_type][sample_idx - nums[0] - nums[1]]
+            #     pass
+
+            sample_type = np.random.choice(3, p=[0.6, 0.2, 0.2])
+            eidx = np.random.choice(self.train_eids[sample_type])
 
             sidx = self.eid2sid[eidx]
             session_start = self.sid_index[sidx]

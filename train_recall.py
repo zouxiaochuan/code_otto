@@ -14,7 +14,7 @@ import argparse
 import torch
 
 
-run_id = 'event_type_merge_sparse_margin0.3_embnorm_h256_tripletloss_pooltransformer_samearticleemb'
+run_id = 'event_type_merge_typsample0.2_sparse_margin0.3_embnorm_h256_tripletloss_pooltransformer_samearticleemb'
 
 
 def compute_average_gradients(parameters):
