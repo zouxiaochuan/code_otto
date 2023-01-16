@@ -75,8 +75,8 @@ class OTTORecallModel(nn.Module):
     def forward_article(self, feat_article, event_type):
         # feat_article: [B, T, D]
         x_article_ = self.layer_embed_article(feat_article)
-        x_article = self.layer_encode_article(x_article_)
-        x_article = x_article.reshape(x_article.shape[0], x_article.shape[1], 3, self.hidden_size)
-        x_article = x_article[torch.arange(x_article.shape[0], device=x_article.device), :, event_type, :]
+        # x_article = self.layer_encode_article(x_article_)
+        # x_article = x_article.reshape(x_article.shape[0], x_article.shape[1], 3, self.hidden_size)
+        # x_article = x_article[torch.arange(x_article.shape[0], device=x_article.device), :, event_type, :]
         # x_article = x_article + x_article_
-        return nn.functional.normalize(x_article, dim=-1)
+        return nn.functional.normalize(x_article_, dim=-1)
