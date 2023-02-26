@@ -129,7 +129,7 @@ def generate_train_candidates_process_fn(param):
     return candidates
     pass
 
-def generate_train_candidates(config):
+def generate_train_candidates_(config):
     import global_data
     global_data.init(names=['sid_index', 'ts', 'etype'])
 
@@ -209,13 +209,43 @@ def generate_train_candidates(global_data, config, eid2sid):
     pass
 
 
+
 def generate_extra_data(config):
     import global_data
     global_data.init(names=['sid_index', 'aid', 'ts', 'etype'])
 
-    eid2sid = generate_eid2sid(global_data, config)
+    # eid2sid = generate_eid2sid(global_data, config)
 
-    generate_train_candidates(global_data, config, eid2sid)
+    # generate_train_candidates(global_data, config, eid2sid)
+
+    generate_article_feat_type_rate(global_data.aid, global_data.ts, global_data.etype, 24 * 60 * 60 * 1000, 'article_feat_type_rate_1d')
+    
+    pass
+
+
+def generate_article_feat_type_rate(aid, ts, etype, interval, name):
+    ts_interval = ts // interval
+
+    rows = np.stack(
+        [ts_interval, etype, aid], axis=1)
+    
+    rows = rows.astype(np.int32)
+    
+    urows, counts = np.unique(rows, axis=0, return_counts=True)
+    utypes, etype_counts = np.unique(rows[:, [0, 1]], axis=0, return_counts=True)
+
+    etype_counts = {tuple(r):c for r, c in tqdm(zip(utypes, etype_counts))}
+
+    rate = np.zeros(counts.shape, dtype=np.float32)
+    for i in tqdm(range(urows.shape[0])):
+        rate[i] = counts[i] / etype_counts[(urows[i, 0], urows[i, 1])]
+        pass
+
+    feat_table_keys = urows
+    feat_table_values = rate[:, None]
+
+    np.save(os.path.join(config['mid_data_path'], f'{name}_keys.npy'), feat_table_keys)
+    np.save(os.path.join(config['mid_data_path'], f'{name}_values.npy'), feat_table_values)
     pass
 
 if __name__ == '__main__':

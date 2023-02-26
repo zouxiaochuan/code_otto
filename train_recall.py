@@ -14,7 +14,7 @@ import argparse
 import torch
 
 
-run_id = 'event_type_merge_typsample0.2_sparse_margin0.3_embnorm_h256_tripletloss_pooltransformer_samearticleemb'
+run_id = 'event_type_merge_sparse_margin0.3_embnorm_h256_sigmoidloss_pooltransformer_samearticleemb_cosschedule'
 
 
 def compute_average_gradients(parameters):
@@ -78,14 +78,23 @@ def main(device, load_model, load_emb):
     optimizer_session = torch.optim.SparseAdam(
         torch_utils.get_optimizer_params(model.layer_embed_session.embeddings.named_parameters(), config['learning_rate'], config['weight_decay']))
 
-    scheduler = timm.scheduler.StepLRScheduler(
-        optimizer, decay_t=config['learning_rate_decay_epochs'], decay_rate=config['learning_rate_decay_rate'],
-        warmup_t=config['warmup_epochs'], warmup_lr_init=1e-6)
+    # scheduler = timm.scheduler.StepLRScheduler(
+    #     optimizer, decay_t=config['learning_rate_decay_epochs'], decay_rate=config['learning_rate_decay_rate'],
+    #     warmup_t=config['warmup_epochs'], warmup_lr_init=1e-6)
+    
+    num_steps_per_epoch = len(loader_train)
+
+    scheduler = timm.scheduler.CosineLRScheduler(
+        optimizer, t_initial=config['num_epochs'] * num_steps_per_epoch, lr_min=1e-6,
+        warmup_t=config['warmup_epochs'] * num_steps_per_epoch, warmup_lr_init=1e-6,
+        t_in_epochs=False
+    )
     
 
     model_save_path = os.path.join(config['model_save_path'], run_id)
     os.makedirs(model_save_path, exist_ok=True)
 
+    total_batches = 0
     for iepoch in range(config['num_epochs']):
         model.train()
         pbar = tqdm(loader_train)
@@ -96,11 +105,11 @@ def main(device, load_model, load_emb):
             y = batch['label']
             y_mask = batch['predict_mask']
             scores[:, 0] = scores[:, 0] - config['margin']
-            # scores = scores * 20
-            # loss = nn.functional.binary_cross_entropy_with_logits(scores, y, reduction='none')
+            scores = scores * 20
+            loss = nn.functional.binary_cross_entropy_with_logits(scores, y, reduction='none')
             # triplet loss
-            loss = scores[:, 0:1] - scores[:, 1:]
-            loss = -torch.clamp(loss, max=0.0)
+            # loss = scores[:, 0:1] - scores[:, 1:]
+            # loss = -torch.clamp(loss, max=0.0)
 
             # scores = scores + (1-y_mask) * -100000
             # loss = nn.functional.cross_entropy(scores, torch.zeros(scores.shape[0], dtype=torch.long, device=device))
@@ -109,7 +118,7 @@ def main(device, load_model, load_emb):
             # num_neg = y_mask[:, 1:].sum(dim=1)
             # y_mask[:, 1:] = y_mask[:, 1:] * 8 / num_neg[:, None]
 
-            loss = (loss * y_mask[:, 1:]).sum() / y_mask[:, 1:].sum()
+            loss = (loss * y_mask[:, :]).sum() / y_mask[:, :].sum()
             
             optimizer.zero_grad()
             optimizer_article.zero_grad()
@@ -122,10 +131,10 @@ def main(device, load_model, load_emb):
             # avg_grad_article = compute_average_gradients(model.layer_embed_article.parameters())
 
             for g in optimizer_article.param_groups:
-                g['lr'] = optimizer.param_groups[0]['lr'] * 10
+                g['lr'] = optimizer.param_groups[0]['lr'] * 100
                 pass
             for g in optimizer_session.param_groups:
-                g['lr'] = optimizer.param_groups[0]['lr'] * 10
+                g['lr'] = optimizer.param_groups[0]['lr'] * 100
                 pass
 
             optimizer.step()
@@ -149,9 +158,11 @@ def main(device, load_model, load_emb):
                 pass
 
             pbar.set_postfix(**running_stats, lr=optimizer.param_groups[0]['lr'])
+            total_batches += 1
+            scheduler.step_update(total_batches)
             pass
         pbar.close()
-        scheduler.step(iepoch)
+        # scheduler.step(iepoch)
 
 
         # save model
@@ -166,6 +177,6 @@ if __name__ == '__main__':
     parser.add_argument('--load_model', type=str, default='')
     parser.add_argument('--load_emb', type=str, default='')
     args = parser.parse_args()
-    torch.autograd.set_detect_anomaly(True)
+
     main(args.device, args.load_model, args.load_emb)
     pass

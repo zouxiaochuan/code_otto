@@ -20,7 +20,7 @@ class OTTORecallModel(nn.Module):
         )
 
         self.session_bias = nn.Parameter(
-            nn.init.normal_(torch.zeros(3, 1, config['hidden_size'])))
+            nn.init.normal_(torch.zeros(3, 1, config['hidden_size']), std=0.01))
 
         self.layer_embed_article = torch_utils.CategoryFeatureEmbedding(
             config['dims_article_cate'], config['hidden_size']
@@ -63,6 +63,7 @@ class OTTORecallModel(nn.Module):
         # x_session: [B, T, H]
 
         session_bias = self.session_bias[event_type]
+        # session_bias = torch.tile(self.session_bias, [x_session.shape[0], 1, 1])
         # session_bias: [B, 1, H]
         x_session = torch.cat([session_bias, x_session], dim=1)
         session_mask = torch.cat([torch.ones(x_session.shape[0], 1, device=session_mask.device), session_mask], dim=1)

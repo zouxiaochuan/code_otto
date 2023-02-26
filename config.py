@@ -16,11 +16,11 @@ config = {
     'batch_size': 256,
     'num_data_workers': 4,
     'num_epochs': 100,
-    'learning_rate': 1e-3,
-    'learning_rate_decay_rate': 0.95,
+    'learning_rate': 1e-4,
+    'learning_rate_decay_rate': 0.99999999,
     'learning_rate_decay_epochs': 1,
     'weight_decay': 1e-5,
-    'warmup_epochs': 0,
+    'warmup_epochs': 1,
     'negative_num': 128,
     'time_encoding_dims': TIME_ENCODING_DIMS,
     'dims_session_cate': TIME_ENCODING_DIMS + [len(constants.etype_map)],
@@ -31,5 +31,4 @@ config = {
     'attention_head_size_session': 32,
     'max_session_size': 64,
     'margin': 0.3,
-
 }

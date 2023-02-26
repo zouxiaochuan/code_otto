@@ -1,5 +1,7 @@
 import torch.nn as nn
 import torch
+from tqdm import tqdm
+import numpy as np
 
 
 class CategoryFeatureEmbedding(nn.Module):
@@ -78,3 +80,36 @@ def get_optimizer_params(
             'lr': learning_rate, 'weight_decay': weight_decay }
     ]
     return optimizer_parameters
+
+
+def chunked_topk(emb1_file, emb2_file, k, device):
+    emb1 = np.load(emb1_file)
+    emb2 = np.load(emb2_file)
+
+    torch.cuda.set_device(device)
+    torch.cuda.empty_cache()
+    
+    chunk_size = 512
+
+    emb2 = torch.from_numpy(emb2).to(device)
+    topn = []
+    topn_scores = []
+    for i in tqdm(range(0, len(emb1), chunk_size)):
+        emb1_chunk = emb1[i:i+chunk_size]
+        emb1_chunk = torch.from_numpy(emb1_chunk).to(device)
+        
+        with torch.no_grad():
+            scores = torch.matmul(emb1_chunk, emb2.t())
+            scores, idx = scores.topk(k, dim=1)
+            pass
+
+        idx = idx.cpu().numpy()
+        topn.append(idx)
+        scores = scores.cpu().numpy()
+        topn_scores.append(scores)
+        pass
+
+    topn = np.vstack(topn)
+    topn_scores = np.vstack(topn_scores)
+
+    return topn, topn_scores
